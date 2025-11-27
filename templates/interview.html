@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview - {{ vacancy.Name }}</title>
+    <style>
+        /* Стили остаются без изменений */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .main-container {
+            display: flex;
+            margin-bottom: 20px;
+            height: 500px;
+            width: 100%;
+            position: relative;
+        }
+
+        .chat-container {
+            width: 50%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            height: 100%;
+            overflow-y: auto;
+            /* padding: 20px; */
+            background: #f9f9f9;
+            flex-shrink: 0;
+        }
+
+        .editor-section {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .editor-container {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .editor-container.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            background-color: #f5f5f5;
+        }
+
+        .chat-container.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            background-color: #f5f5f5;
+        }
+
+        .splitter {
+            width: 8px;
+            background-color: #e0e0e0;
+            cursor: col-resize;
+            position: relative;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .splitter:hover {
+            background-color: #c0c0c0;
+        }
+
+        .splitter::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 30px;
+            background-color: #999;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: 50px;
+            text-align: right;
+        }
+
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            margin-right: 50px;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #messageInput:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        #sendButton {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #sendButton:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .interview-info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: flex-end;
+        }
+
+        .editor-controls button {
+            padding: 5px 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .editor-controls button:hover {
+            background: #218838;
+        }
+
+        .editor-controls button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .task-display {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .task-display h3 {
+            margin: 0 0 10px 0;
+            color: #0066cc;
+            font-size: 18px;
+        }
+
+        .task-display .task-text {
+            white-space: pre-wrap;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .task-display .test-info {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="interview-info">
+        <h2>Собеседование на должность: {{ vacancy.Name }}</h2>
+        <p><strong>Кандидат:</strong> {{ applicant.firstName }} {{ applicant.lastName }}</p>
+        <!-- <p><strong>Session ID:</strong> {{ session_id }}</p> -->
+    </div>
+
+    <div class="main-container">
+        <div class="chat-container" id="chatContainer">
+            <div class="message bot-message">
+                <strong>Василий:</strong> {{ initial_message }}
+            </div>
+        </div>
+
+        <div class="splitter" id="splitter"></div>
+
+        <div class="editor-section">
+            <div class="editor-container disabled" id="editorContainer"></div>
+            <div class="editor-controls">
+                <button id="executeButton" onclick="sendCodeToChat()">Выполнить код</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Сообщение..." autocomplete="off">
+        <button id="sendButton" onclick="sendMessage()">Отправить</button>
+    </div>
+    <div id="forCodeOutput"></div>
+
+    <!-- Загрузчик Monaco Editor -->
+    <script src="https://unpkg.com/monaco-editor@0.33.0/min/vs/loader.js"></script>
+    <script>
+        // Идентификатор сессии
+        const sessionId = "{{ session_id }}";
+        // Элементы DOM
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const editorContainer = document.getElementById('editorContainer');
+        const executeButton = document.getElementById('executeButton');
+        let editor; // Переменная для хранения экземпляра редактора
+
+        // Инициализация Monaco Editor
+        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.33.0/min/vs' } });
+
+        require(['vs/editor/editor.main'], function () {
+            // Создание редактора с начальными настройками
+            editor = monaco.editor.create(document.getElementById('editorContainer'), {
+                value: `class Solution:\n`, // Начальный код
+                language: 'python', // Язык программирования
+                theme: 'vs-dark', // Тема оформления
+                fontSize: 14, // Размер шрифта
+                fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", // Шрифт
+                automaticLayout: true, // Автоматическое изменение размера
+                minimap: { enabled: true }, // Включение мини-карты
+                scrollBeyondLastLine: false, // Отключение прокрутки за последнюю строку
+                wordWrap: 'on', // Перенос строк
+                readOnly: true // Запрет редактирования по умолчанию
+            });
+        });
+
+        // Функция для включения IDE
+        function enableIDE() {
+            editorContainer.classList.remove('disabled');
+            executeButton.disabled = false;
+            if (editor) {
+                editor.updateOptions({ readOnly: false });
+            }
+        }
+
+        // Функция для отключения IDE
+        function disableIDE() {
+            editorContainer.classList.add('disabled');
+            executeButton.disabled = true;
+            if (editor) {
+                editor.updateOptions({ readOnly: true });
+            }
+        }
+
+        // Функция для включения чата
+        function enableChat() {
+            chatContainer.classList.remove('disabled');
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+        }
+
+        // Функция для отключения чата
+        function disableChat() {
+            chatContainer.classList.add('disabled');
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+        }
+
+        // Функциональность разделителя
+        const splitter = document.getElementById('splitter');
+        const mainContainer = document.querySelector('.main-container');
+        let isResizing = false; // Флаг процесса изменения размера
+
+        // Обработчик начала изменения размера
+        splitter.addEventListener('mousedown', function (e) {
+            isResizing = true;
+            document.body.style.cursor = 'col-resize';
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResize);
+        });
+
+        // Обработчик движения мыши при изменении размера
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+
+            const containerRect = mainContainer.getBoundingClientRect();
+            const containerLeft = containerRect.left;
+            const containerWidth = containerRect.width;
+
+            // Расчет новых ширины на основе позиции мыши
+            const newLeftWidth = ((e.clientX - containerLeft) / containerWidth) * 100;
+            const newRightWidth = 100 - newLeftWidth - (8 / containerWidth * 100); // Учет ширины разделителя
+
+            // Применение ограничений (минимум 20% для каждой части)
+            if (newLeftWidth >= 20 && newRightWidth >= 20) {
+                document.querySelector('.chat-container').style.width = `${newLeftWidth}%`;
+                document.querySelector('.editor-section').style.width = `${newRightWidth}%`;
+
+                // Обновление layout редактора Monaco
+                if (editor) {
+                    setTimeout(() => {
+                        editor.layout();
+                    }, 0);
+                }
+            }
+        }
+
+        // Остановка изменения размера
+        function stopResize() {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Получение кода из редактора
+        function getEditorCode() {
+            return editor ? editor.getValue() : '';
+        }
+
+        // Установка кода в редактор
+        function setEditorCode(code) {
+            if (editor) {
+                editor.setValue(code);
+            }
+        }
+
+        // Очистка редактора
+        function clearEditor() {
+            if (editor) {
+                editor.setValue('// Write your code here\n');
+            }
+        }
+
+        // Отправка кода в чат
+        function sendCodeToChat() {
+            const code = getEditorCode();
+            if (code.trim()) {
+                // Форматирование кода для отображения в чате
+                const formattedCode = "```javascript\n" + code + "\n```";
+                sendMessageWithCode(formattedCode);
+            }
+        }
+
+        // Отправка сообщения с кодом
+        function sendMessageWithCode(message) {
+            if (!message.trim()) return;
+
+            // Добавление сообщения пользователя в чат
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+
+            // Отправка на сервер
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    message: message
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Логирование данных ответа
+                    console.log('``````````');
+                    console.log(data.changeQuestion);
+                    console.log(data.nextQuestionType);
+                    console.log(data.isDone);
+                    console.log(data.currentQuestion)
+
+                    // Проверка завершения собеседования
+                    if (data.isDone == true) {
+                        console.log("СОБЕС ОКОНЧЕН")
+                    }
+
+                    // Логика переключения между чатом и IDE
+                    if (data.changeQuestion == true) {
+                        // Включение IDE и отключение чата
+                        enableIDE();
+                        disableChat();
+                        getTask(sessionId) // Получение новой задачи
+                    } else {
+                        // Включение чата и отключение IDE
+                        enableChat();
+                        disableIDE();
+                    }
+
+                    // Добавление ответа в чат
+                    if (data.response) {
+                        addMessage(data.response, false);
+                    } else {
+                        addMessage('Sorry, there was an error processing your message.', false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessage('Sorry, there was an error connecting to the server.', false);
+                })
+                .finally(() => {
+                    sendButton.disabled = false;
+                    sendButton.textContent = 'Send';
+                    messageInput.focus();
+                });
+        }
+
+        // Добавление сообщения в чат
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+
+            // Форматирование блоков кода в сообщениях
+            let formattedContent = content;
+            if (content.includes('```')) {
+                formattedContent = content.replace(/```(\w+)?\n([\s\S]*?)```/g, function (match, lang, code) {
+                    return `<div style="background: #f5f5f5; padding: 10px; border-radius: 3px; margin: 5px 0; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">${code}</div>`;
+                });
+            }
+
+            messageDiv.innerHTML = `<strong>${isUser ? 'You' : 'Interviewer'}:</strong> ${formattedContent}`;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight; // Прокрутка к последнему сообщению
+        }
+
+        // Отправка сообщения
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            sendMessageWithCode(message);
+        }
+
+        // Отправка сообщения по нажатию Enter
+        messageInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Инициализация с включенным чатом и отключенной IDE
+        disableIDE();
+        enableChat();
+
+        // Функция выполнения кода (переопределенная)
+        function sendCodeToChat() {
+            const code = getEditorCode();
+            if (!code.trim()) {
+                console.log("No code to execute");
+                return;
+            }
+
+            // Отключение кнопки выполнения во время обработки
+            executeButton.disabled = true;
+            executeButton.textContent = 'Executing...';
+
+            // Отправка кода на выполнение
+            fetch('/api/execute-python', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: code,
+                    session_id: sessionId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Execution result:', data);
+
+                    if (data.success) {
+                        const result = data.result;
+                        console.log('✅ Execution successful!');
+                        console.log('Output:', result);
+                        console.log('Exit code:', result.exit_code);
+                        console.log('Execution time:', result.execution_time_seconds + 's');
+
+                        // Отображение результата выполнения
+                        addExecutionResultToChat(result, true);
+
+                        // Логирование данных ответа
+                        console.log('``````````');
+                        console.log(data.changeQuestion);
+                        console.log(data.nextQuestionType);
+                        console.log(data.isDone);
+                        console.log(data.currentQuestion)
+
+                        // Проверка завершения собеседования
+                        if (data.isDone == true) {
+                            console.log("СОБЕС ОКОНЧЕН")
+                            // Очистка всех элементов на странице
+                            const allElements = document.querySelectorAll('*');
+                            allElements.forEach(element => {
+                                element.innerHTML = '';
+                            });
+                        }
+
+                        // Логика переключения между режимами
+                        if (data.changeQuestion == true) {
+                            // Включение чата и отключение IDE
+                            enableChat();
+                            disableIDE();
+                        } else {
+                            // Включение IDE и отключение чата
+                            enableIDE();
+                            disableChat();
+                        }
+
+                    } else {
+                        console.error('❌ Execution failed:');
+                        console.error('Error:', data.error || 'Unknown error');
+                        if (data.result) {
+                            console.error('Output:', data.result.output);
+                            console.error('Exit code:', data.result.exit_code);
+                        }
+
+                        // Отображение ошибки в чате
+                        addExecutionResultToChat(data.result || { output: data.output }, false);
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Network error:', error);
+                    addExecutionResultToChat({ output: 'Network error: ' + error.message }, false);
+                })
+                .finally(() => {
+                    // Включение кнопки выполнения обратно
+                    executeButton.disabled = false;
+                    executeButton.textContent = 'Выполнить код';
+                });
+        }
+
+        // Добавление результата выполнения в чат
+        function addExecutionResultToChat(result, isSuccess) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSuccess ? 'bot-message' : 'user-message'}`;
+
+            let outputContent = result.stdout || 'No output';
+            let status = isSuccess ? '✅ Execution Successful' : '❌ Execution Failed';
+            let exitCode = result.exit_code !== undefined ? result.exit_code : 'N/A';
+            let execTime = result.execution_time_seconds ? result.execution_time_seconds + 's' : 'N/A';
+
+            // Форматирование содержимого результата
+            const formattedContent = `
+        <strong>${isSuccess ? 'System' : 'Error'}:</strong> ${status}<br>
+        <div style="background: ${isSuccess ? '#d4edda' : '#f8d7da'}; padding: 10px; border-radius: 3px; margin: 5px 0; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+            <strong>Output:</strong><br>${outputContent}<br><br>
+            <strong>Exit Code:</strong> ${exitCode}<br>
+            <strong>Execution Time:</strong> ${execTime}
+        </div>
+    `;
+
+            messageDiv.innerHTML = formattedContent;
+
+            // Добавление в контейнер для вывода кода
+            const codething = document.getElementById('forCodeOutput');
+            codething.appendChild(messageDiv);
+            codething.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Фокус на поле ввода при загрузке
+        messageInput.focus();
+
+        // Получение задачи от сервера
+        function getTask(sessionId) {
+            return fetch('/api/get-task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    console.log(data);
+
+                    // Создание блока отображения задачи
+                    createTaskDiv(data);
+
+                    return data;
+                })
+                .catch(error => {
+                    console.error('Error getting task:', error);
+                    throw error;
+                });
+        }
+
+        // Создание div для отображения задачи
+        function createTaskDiv(taskData) {
+            // Удаление существующего блока задачи если есть
+            const existingTaskDiv = document.getElementById('taskDisplay');
+            if (existingTaskDiv) {
+                existingTaskDiv.remove();
+            }
+
+            // Создание нового блока задачи
+            const taskDiv = document.createElement('div');
+            taskDiv.id = 'taskDisplay';
+            taskDiv.className = 'task-display';
+            taskDiv.style.cssText = `
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 15px 0;
+        font-family: Arial, sans-serif;
+    `;
+
+            // Добавление названия задачи
+            const taskName = document.createElement('h3');
+            taskName.textContent = taskData.taskName || 'Task';
+            taskName.style.cssText = `
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-size: 18px;
+    `;
+
+            // Добавление текста задачи
+            const taskText = document.createElement('div');
+            taskText.textContent = taskData.taskText || 'No task description available.';
+            taskText.style.cssText = `
+        white-space: pre-wrap;
+        line-height: 1.4;
+        margin-bottom: 10px;
+    `;
+
+            // Добавление информации о тестах
+            const testInfo = document.createElement('div');
+            testInfo.textContent = `Tests: ${taskData.testCount || 0}`;
+            testInfo.style.cssText = `
+        font-size: 14px;
+        color: #666;
+        font-style: italic;
+    `;
+
+            // Сборка блока задачи
+            taskDiv.appendChild(taskName);
+            taskDiv.appendChild(taskText);
+            taskDiv.appendChild(testInfo);
+
+            // Вставка блока задачи в начало контейнера чата
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.insertBefore(taskDiv, chatContainer.firstChild);
+
+            // Также добавление в контейнер для вывода кода
+            const codething = document.getElementById('forCodeOutput');
+            codething.innerHTML = ''
+            codething.appendChild(taskDiv);
+
+            return taskDiv;
+        }
+
+        // Функция загрузки задачи (обновленная для использования createTaskDiv)
+        function loadTask() {
+            getTask(sessionId)
+                .then(taskData => {
+                    console.log('Task received:', taskData);
+
+                    // Обработка данных задачи - обновление UI
+                    if (taskData.taskName) {
+                        // Обновление редактора шаблоном кода задачи
+                        setEditorCode(taskData.taskText || '// Write your solution here');
+
+                        // Включение IDE для программирования
+                        enableIDE();
+                        disableChat();
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load task:', error);
+                    addMessage('Failed to load task. Please try again.', false);
+                });
+        }
+
+        // Базовая защита от списывания
+        document.addEventListener('copy', function (e) {
+            e.preventDefault();
+            e.clipboardData.setData('text/plain', '');
+        });
+
+        document.addEventListener('cut', function (e) {
+            e.preventDefault();
+            e.clipboardData.setData('text/plain', '');
+        });
+
+        document.addEventListener('paste', function (e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ vacancy.Name }} - Вакансия</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .application-form {
+            display: none;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+            display: none;
+            margin-top: 5px;
+        }
+        .success-message {
+            display: none;
+            background: #d4edda;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .apply-button {
+            background: #28a745;
+            color: white;
+        }
+        .cancel-button {
+            background: #6c757d;
+            color: white;
+        }
+        .submit-button {
+            background: #007bff;
+            color: white;
+        }
+        .interview-button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .vacancy-details {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+    {% if vacancy %}
+        <h1>{{ vacancy.Name }}</h1>
+        
+        <!-- Закомментированные детали вакансии -->
+        <!-- <div class="vacancy-details"> -->
+            <!-- <p><strong>ID Компании:</strong> {{ vacancy.ID_Company }}</p> -->
+            <!-- <p><strong>Тип собеседования:</strong> {{ vacancy.ID_InterviewType }}</p> -->
+            <!-- <p><strong>ID Вакансии:</strong> {{ vacancy.ID }}</p> -->
+            <!-- <p><strong>Хэш:</strong> {{ vacancy_hash }}</p> -->
+        <!-- </div> -->
+
+        <!-- Закомментированное описание работы -->
+        <!-- <h2>Описание работы</h2> -->
+        <p>{{ vacancy.Description or "Описание пустое" }}</p>
+
+        <!-- Закомментированные детали позиции -->
+        <!-- <h2>Детали позиции</h2> -->
+        <!-- <p><strong>Количество задач:</strong> {{ vacancy.TasksCount or 0 }}</p> -->
+        <!-- <p><strong>Тип задач:</strong> {{ vacancy.TasksType or 'Не указано' }}</p> -->
+
+        <!-- Закомментированная кнопка подачи заявки -->
+        <!-- <button class="apply-button" id="applyButton" onclick="showApplicationForm()">Подать заявку на эту позицию</button> -->
+
+        <!-- Форма заявки -->
+        <div class="application-form" id="applicationForm" style="display: block;">
+            <h3>Форма</h3>
+            <form id="jobApplicationForm">
+                <div class="form-group">
+                    <label for="firstName">Имя *</label>
+                    <input type="text" id="firstName" required>
+                    <div class="error-message" id="firstNameError">Пожалуйста, введите ваше имя</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Фамилия *</label>
+                    <input type="text" id="lastName" required>
+                    <div class="error-message" id="lastNameError">Пожалуйста, введите вашу фамилию</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phoneNumber">Номер телефона *</label>
+                    <input type="tel" id="phoneNumber" required>
+                    <div class="error-message" id="phoneError">Пожалуйста, введите корректный номер телефона</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="resumeLink">Ссылка на резюме *</label>
+                    <input type="url" id="resumeLink" required>
+                    <div class="error-message" id="resumeError">Пожалуйста, введите корректную ссылку на ваше резюме</div>
+                </div>
+
+                <!-- Закомментированное поле для сопроводительного письма -->
+                <!-- <div class="form-group"> -->
+                    <!-- <label for="coverLetter">Сопроводительное письмо (Необязательно)</label> -->
+                    <!-- <textarea id="coverLetter" rows="4"></textarea> -->
+                <!-- </div> -->
+
+                <div>
+                    <!-- Закомментированная кнопка отмены -->
+                    <!-- <button type="button" class="cancel-button" onclick="hideApplicationForm()">Отмена</button> -->
+                    <button type="submit" class="submit-button">Отправить</button>
+                </div>
+            </form>
+
+            <!-- Сообщение об успешной отправке -->
+            <div class="success-message" id="successMessage">
+                <h3>Заявка успешно отправлена!</h3>
+                <p>Спасибо за вашу заявку на позицию "{{ vacancy.Name }}".</p>
+                
+                <div>
+                    <button class="interview-button" onclick="startInterview()">
+                        Начать собеседование в чате
+                    </button>
+                </div>
+                
+                <button class="cancel-button" onclick="resetApplication()">Подать заявку на другую позицию</button>
+            </div>
+        </div>
+
+    {% elif error %}
+        <h2>Вакансия не найдена</h2>
+        <p>{{ error }}</p>
+        <p><a href="/">← Назад на главную</a></p>
+    {% else %}
+        <h2>Загрузка информации о вакансии...</h2>
+    {% endif %}
+
+    <script>
+        // Объявление функций в начале для избежания ошибок ссылок
+        // function showApplicationForm() {
+        //     const applicationForm = document.getElementById('applicationForm');
+        //     const applyButton = document.getElementById('applyButton');
+            
+        //     if (applicationForm && applyButton) {
+        //         applicationForm.style.display = 'block';
+        //         applyButton.style.display = 'none';
+        //     }
+        // }
+
+        // function hideApplicationForm() {
+        //     const applicationForm = document.getElementById('applicationForm');
+        //     const applyButton = document.getElementById('applyButton');
+            
+        //     if (applicationForm && applyButton) {
+        //         applicationForm.style.display = 'none';
+        //         applyButton.style.display = 'block';
+        //         resetFormValidation();
+        //     }
+        // }
+
+        function resetApplication() {
+            hideApplicationForm();
+            const successMessage = document.getElementById('successMessage');
+            const jobApplicationForm = document.getElementById('jobApplicationForm');
+            
+            if (successMessage) {
+                successMessage.style.display = 'none';
+            }
+            
+            if (jobApplicationForm) {
+                jobApplicationForm.style.display = 'block';
+                jobApplicationForm.reset();
+            }
+            
+            resetFormValidation();
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const firstName = document.getElementById('firstName');
+            const lastName = document.getElementById('lastName');
+            const phoneNumber = document.getElementById('phoneNumber');
+            const resumeLink = document.getElementById('resumeLink');
+
+            resetFormValidation();
+
+            if (!firstName || !firstName.value.trim()) {
+                const firstNameError = document.getElementById('firstNameError');
+                if (firstNameError) firstNameError.style.display = 'block';
+                isValid = false;
+            }
+
+            if (!lastName || !lastName.value.trim()) {
+                const lastNameError = document.getElementById('lastNameError');
+                if (lastNameError) lastNameError.style.display = 'block';
+                isValid = false;
+            }
+
+            const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+            if (!phoneNumber || !phoneNumber.value.trim() || !phoneRegex.test(phoneNumber.value.trim().replace(/[\s\-\(\)]/g, ''))) {
+                const phoneError = document.getElementById('phoneError');
+                if (phoneError) phoneError.style.display = 'block';
+                isValid = false;
+            }
+
+            const urlRegex = /^(https?:\/\/)/;
+            if (!resumeLink || !resumeLink.value.trim() || !urlRegex.test(resumeLink.value.trim())) {
+                const resumeError = document.getElementById('resumeError');
+                if (resumeError) resumeError.style.display = 'block';
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function resetFormValidation() {
+            const errorMessages = document.querySelectorAll('.error-message');
+            errorMessages.forEach(msg => {
+                msg.style.display = 'none';
+            });
+        }
+
+        function startInterview() {
+            const formData = {
+                vacancyId: {{ vacancy.ID }},
+                vacancyHash: "{{ vacancy_hash }}",
+                firstName: document.getElementById('firstName')?.value.trim() || '',
+                lastName: document.getElementById('lastName')?.value.trim() || '',
+                phoneNumber: document.getElementById('phoneNumber')?.value.trim() || '',
+                resumeLink: document.getElementById('resumeLink')?.value.trim() || '',
+            };
+
+            fetch('/api/start-interview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сетевого ответа');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.session_id) {
+                    // Перенаправление на интерфейс чата
+                    window.location.href = `/interview/${data.session_id}`;
+                } else {
+                    alert('Ошибка начала собеседования: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка начала сессии собеседования');
+            });
+        }
+
+        // Ожидание полной загрузки DOM перед добавлением обработчиков событий
+        document.addEventListener('DOMContentLoaded', function() {
+            const jobApplicationForm = document.getElementById('jobApplicationForm');
+            if (jobApplicationForm) {
+                
+                jobApplicationForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    startInterview();
+                    // if (validateForm()) {
+                    //     const formData = {
+                    //         firstName: document.getElementById('firstName')?.value.trim() || '',
+                    //         lastName: document.getElementById('lastName')?.value.trim() || '',
+                    //         phoneNumber: document.getElementById('phoneNumber')?.value.trim() || '',
+                    //         resumeLink: document.getElementById('resumeLink')?.value.trim() || '',
+                    //         vacancyId: {{ vacancy.ID }},
+                    //         vacancyName: "{{ vacancy.Name }}",
+                    //         vacancyHash: "{{ vacancy_hash }}"
+                    //     };
+                        
+                    //     console.log('Заявка отправлена:', formData);
+                        
+                    //     const jobApplicationForm = document.getElementById('jobApplicationForm');
+                    //     const successMessage = document.getElementById('successMessage');
+                        
+                    //     if (jobApplicationForm) {
+                    //         jobApplicationForm.style.display = 'none';
+                    //     }
+                        
+                    //     if (successMessage) {
+                    //         successMessage.style.display = 'block';
+                    //     }
+                    // }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
